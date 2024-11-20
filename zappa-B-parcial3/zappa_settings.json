@@ -1,0 +1,39 @@
+{
+    "dev": {
+        "app_function": "app.handler",
+        "aws_region": "us-east-1",
+        
+        "keep_warm": false,
+        "apigateway_enabled": false,
+        "manage_roles": false,
+        "role_name": "LabRole",
+        
+        "exclude": [
+            "boto3",
+            "dateutil",
+            "botocore",
+            "s3transfer",
+            "concurrent"
+        ],
+        "profile_name": "default",
+        "project_name": "zappa-b-parcial",
+        "runtime": "python3.10",
+        "s3_bucket": "zappa-abpyv5iq0",
+        
+        "events": [
+            {
+                "function": "app.handler",
+                "event_source": {
+                    "arn": "arn:aws:s3:::bucketparcial3corte",
+                    "events": [
+                        "s3:ObjectCreated:*"
+                    ],
+                    "key_filters": [
+                        {
+                            "type": "prefix",
+                            "value": "headlines/raw/"
+                        }]
+                }
+            }]
+    }
+}
