@@ -1,0 +1,30 @@
+{
+    "dev": {
+        "app_function": "app.handler",
+        "aws_region": "us-east-1",
+        
+        "keep_warm": false,
+        "apigateway_enabled": false,
+        "manage_roles": false,
+        "role_name": "LabRole",
+        
+        "exclude": [
+            "boto3",
+            "dateutil",
+            "botocore",
+            "s3transfer",
+            "concurrent"
+        ],
+        "profile_name": "default",
+        "project_name": "zappa-a-parcial",
+        "runtime": "python3.10",
+        "s3_bucket": "zappa-ss9jfj941"
+        
+         "events": [
+            {
+                "function": "app.handler",
+                "expression": "rate(1 day)"
+            }
+        ]
+    }
+}
