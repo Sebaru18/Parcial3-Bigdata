@@ -2,7 +2,6 @@ import boto3
 import csv
 from bs4 import BeautifulSoup
 from datetime import datetime
-import os
 
 s3 = boto3.client('s3')
 
@@ -22,21 +21,26 @@ def handler(event, context):
     # Extraer categoría, titular y enlace
     for article in soup.find_all('article'):
         try:
-            category = article.find('span', class_='category').text.strip()
-            headline = article.find('h2', class_='headline').text.strip()
-            link = article.find('a', href=True)['href']
+            category = article.find('div', class_='category').text.strip() if article.find('div', class_='category') else "Sin categoría"
+            headline = article.find('h3', class_='headline').text.strip() if article.find('h3', class_='headline') else "Sin titular"
+            link = article.find('a', href=True)['href'] if article.find('a', href=True) else "Sin enlace"
             headlines.append([category, headline, link])
         except AttributeError:
             continue
+    
+    # Validar si se encontraron titulares
+    if not headlines:
+        print("No se encontraron titulares. Revisa la estructura del HTML.")
+        return
 
     # Preparar estructura para guardar en S3
     today = datetime.now()
     year, month, day = today.year, today.month, today.day
-    periodico = "eltiempo" if "eltiempo" in raw_key else "elespectador"
+    periodico = "eltiempo" if "eltiempo" in raw_key else "publimetro"
     csv_key = f"headlines/final/periodico={periodico}/year={year}/month={month}/day={day}/headlines.csv"
 
     # Crear CSV en memoria
-    csv_content = ""
+    csv_content = "Categoría,Titular,Enlace\n"  # Agregar encabezado
     for headline in headlines:
         csv_content += ",".join(headline) + "\n"
     
