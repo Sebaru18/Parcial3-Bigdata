@@ -9,7 +9,7 @@ def handler(event, context):
     
     urls = {
         "eltiempo": "https://www.eltiempo.com/",
-        "elespectador": "https://www.elespectador.com/"
+        "publimetro": "https://www.publimetro.co/"
     }
 
     # Iterar sobre las URLs
@@ -18,6 +18,7 @@ def handler(event, context):
             # Descargar el contenido
             response = requests.get(url)
             response.raise_for_status()  # Verifica errores HTTP
+            
 
             fecha = datetime.now().strftime("%Y-%m-%d")
             s3_key = f"headlines/raw/contenido-{name}-{fecha}.html"
