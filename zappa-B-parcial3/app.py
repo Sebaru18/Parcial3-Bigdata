@@ -2,6 +2,7 @@ import boto3
 import csv
 from bs4 import BeautifulSoup
 from datetime import datetime
+import os
 
 s3 = boto3.client('s3')
 
@@ -18,17 +19,51 @@ def handler(event, context):
     soup = BeautifulSoup(html_content, 'html.parser')
     headlines = []
 
-    # Extraer categoría, titular y enlace
-    for article in soup.find_all('article'):
+    # Verificar qué periódico es
+    if "eltiempo" in raw_key:
+        periodico = "eltiempo"
+        base_url = "https://www.eltiempo.com"
+    elif "publimetro" in raw_key:
+        periodico = "publimetro"
+        base_url = "https://www.publimetro.co"
+    else:
+        print("Periódico desconocido en la ruta del archivo.")
+        return
+
+    # Extraer titulares y enlaces
+    for article in soup.find_all('a', href=True):  # Cambia el selector según la estructura del HTML
         try:
-            category = article.find('div', class_='category').text.strip() if article.find('div', class_='category') else "Sin categoría"
-            headline = article.find('h3', class_='headline').text.strip() if article.find('h3', class_='headline') else "Sin titular"
-            link = article.find('a', href=True)['href'] if article.find('a', href=True) else "Sin enlace"
+            # Obtener el enlace completo
+            link = article['href']
+            if not link.startswith("http"):
+                link = base_url + link
+            
+            # Procesar la categoría y el titular
+            if periodico == "eltiempo":
+                # Estructura: https://www.eltiempo.com/categoria/titular
+                path_parts = link.replace(base_url, "").split("/")
+                if len(path_parts) >= 3:
+                    category = path_parts[1].replace("-", " ").capitalize()
+                    headline = path_parts[2].replace("-", " ").capitalize()
+                else:
+                    category = path_parts[1].replace("-", " ").capitalize()
+                    headline = "Sin titular"
+            elif periodico == "publimetro":
+                # Estructura: /categoria/yyyy/mm/dd/titular
+                path_parts = link.replace(base_url, "").split("/")
+                if len(path_parts) >= 5:
+                    category = path_parts[1].replace("-", " ").capitalize()
+                    headline = " ".join(path_parts[5:]).replace("-", " ").capitalize()
+                else:
+                    category = path_parts[1].replace("-", " ").capitalize()
+                    headline = "Sin titular"
+            
+            # Añadir la información procesada a la lista
             headlines.append([category, headline, link])
-        except AttributeError:
+        except Exception as e:
+            print(f"Error procesando un artículo: {e}")
             continue
     
-    # Validar si se encontraron titulares
     if not headlines:
         print("No se encontraron titulares. Revisa la estructura del HTML.")
         return
@@ -36,11 +71,10 @@ def handler(event, context):
     # Preparar estructura para guardar en S3
     today = datetime.now()
     year, month, day = today.year, today.month, today.day
-    periodico = "eltiempo" if "eltiempo" in raw_key else "publimetro"
     csv_key = f"headlines/final/periodico={periodico}/year={year}/month={month}/day={day}/headlines.csv"
 
-    # Crear CSV en memoria
-    csv_content = "Categoría,Titular,Enlace\n"  # Agregar encabezado
+    # Crear y escribir el CSV en memoria
+    csv_content = "Categoría,Titular,Enlace\n"
     for headline in headlines:
         csv_content += ",".join(headline) + "\n"
     
